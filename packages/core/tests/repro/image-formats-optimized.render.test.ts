@@ -90,6 +90,27 @@ describe("Image formats on the optimized (non-AstroPicture) path", () => {
 		expect(vi.mocked(getImage)).toHaveBeenCalledTimes(2);
 	});
 
+	test("jxl renders as a source in front of the img", async () => {
+		const html = await render({ image: remoteImage, formats: ["jxl", "webp"] });
+
+		const sources = sourceTags(html);
+		expect(sources.map((s) => attr(s, "type"))).toEqual(["image/jxl"]);
+		expect(attr(sources[0]!, "srcset")).toContain("f=jxl");
+		expect(attr(imgTag(html), "src")).toContain("f=webp");
+	});
+
+	test("jxl is never the img: a lone or last jxl stays a source", async () => {
+		for (const formats of [["jxl"], ["avif", "jxl"]]) {
+			const html = await render({ image: remoteImage, formats });
+
+			expect(sourceTags(html).map((s) => attr(s, "type"))).toEqual(
+				formats.map((f) => `image/${f}`),
+			);
+			expect(attr(imgTag(html), "src")).toContain("f=webp");
+			expect(attr(imgTag(html), "srcset")).not.toContain("f=jxl");
+		}
+	});
+
 	test("quality applies to the source and the img", async () => {
 		const html = await render({ image: remoteImage, formats: ["avif", "webp"], quality: 70 });
 

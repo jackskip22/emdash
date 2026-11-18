@@ -80,6 +80,18 @@ describe("Image formats prop", () => {
 		expect(format(attr(imgTag(html), "src"))).toBe("avif");
 	});
 
+	test("jxl renders a JPEG XL source and never the img", async () => {
+		for (const formats of [["jxl", "webp"], ["jxl"]]) {
+			const html = await renderOptimized({ image: localImage, formats });
+
+			const sources = sourceTags(html);
+			expect(sources.map((s) => attr(s, "type"))).toEqual(["image/jxl"]);
+			expect(attr(sources[0]!, "srcset")).toContain("f=jxl");
+			expect(format(attr(imgTag(html), "src"))).toBe("webp");
+			expect(attr(imgTag(html), "srcset")).not.toContain("f=jxl");
+		}
+	});
+
 	test("without formats the markup is a single img, unchanged", async () => {
 		const html = await render({ image: localImage });
 

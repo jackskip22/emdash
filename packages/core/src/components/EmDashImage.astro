@@ -24,7 +24,11 @@ import type { ImageValue, MediaValue } from "../fields/types.js";
 import type { HTMLAttributes } from "astro/types";
 import type { LocalImageProps } from "astro:assets";
 import { Image as AstroImage, Picture as AstroPicture, getImage } from "astro:assets";
-import type { ImageTransformFormat } from "../media/image-endpoint.js";
+import {
+	DEFAULT_TRANSFORM_FORMAT,
+	type ImageTransformFormat,
+	type WrittenTransformFormat,
+} from "../media/image-endpoint.js";
 import type { ImageEmbed } from "../media/types.js";
 import { getMediaProvider } from "../media/provider-loader.js";
 import { normalizeLegacyExternalMediaValue } from "../media/normalize.js";
@@ -72,8 +76,11 @@ interface Props extends Omit<
 	 * external media providers keep the provider's own URLs.
 	 */
 	formats?: ImageTransformFormat[];
-	/** Format for the fallback `<img>` when `formats` is set. Defaults to the last entry of `formats`. */
-	fallbackFormat?: ImageTransformFormat;
+	/**
+	 * Format for the fallback `<img>` when `formats` is set. Defaults to the
+	 * last entry of `formats`, or to the default format when that entry is `jxl`.
+	 */
+	fallbackFormat?: WrittenTransformFormat;
 }
 
 const {
@@ -133,8 +140,12 @@ function generateSrcset(
 
 // The fallback `<img>` uses the last requested format unless overridden. With
 // an explicit `fallbackFormat`, every `formats` entry stays a `<source>`.
-const imgFormat = formats?.length ? (fallbackFormat ?? formats.at(-1)) : undefined;
-const sourceFormats = formats?.length ? (fallbackFormat ? formats : formats.slice(0, -1)) : [];
+// JPEG XL is only ever a `<source>`, so browsers that can't show it never
+// request it: when it would be the `<img>`, the `<img>` uses the default format.
+const fallback =
+	fallbackFormat ?? (formats?.at(-1) === "jxl" ? DEFAULT_TRANSFORM_FORMAT : undefined);
+const imgFormat = formats?.length ? (fallback ?? formats.at(-1)) : undefined;
+const sourceFormats = formats?.length ? (fallback ? formats : formats.slice(0, -1)) : [];
 const outputFormats = [...new Set([imgFormat, ...sourceFormats])];
 
 interface ResolvedImage {

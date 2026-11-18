@@ -24,12 +24,13 @@ import {
 	resolveTransformQuality,
 	validatorHeaders,
 	isNotModified,
-	type ImageTransformFormat,
+	writtenFormat,
+	type WrittenTransformFormat,
 } from "emdash/media/image-endpoint";
 
 export const prerender = false;
 
-const FORMAT_MIME: Record<ImageTransformFormat, ImageOutputOptions["format"]> = {
+const FORMAT_MIME: Record<WrittenTransformFormat, ImageOutputOptions["format"]> = {
 	webp: "image/webp",
 	avif: "image/avif",
 	jpeg: "image/jpeg",
@@ -133,7 +134,8 @@ export const GET: APIRoute = async (ctx) => {
 			return notModifiedResponse(source.contentType, source.size, source.lastModified, fingerprint);
 		}
 
-		const { width, height, format, quality } = parsed.options;
+		const { width, height, quality } = parsed.options;
+		const format = writtenFormat(parsed.options.format);
 		const outputMime = FORMAT_MIME[format] ?? "image/webp";
 		const transform: ImageTransform = {};
 		if (width) transform.width = width;

@@ -21,6 +21,7 @@ import {
 	originalMediaHeaders,
 	validatorHeaders,
 	isNotModified,
+	writtenFormat,
 } from "../media/image-endpoint.js";
 
 export const prerender = false;
@@ -119,6 +120,8 @@ export const GET: APIRoute = async (ctx) => {
 			unusedBody = undefined;
 			return response;
 		}
+
+		if (transform.format === "jxl") transform.format = writtenFormat(transform.format);
 
 		const fingerprint = getTransformFingerprint(url.searchParams);
 		if (isNotModified(ctx.request, source.size, source.lastModified, fingerprint)) {

@@ -106,6 +106,19 @@ describe("Cloudflare image endpoint", () => {
 		expect(output).toHaveBeenCalledWith({ format: "image/webp", quality: 85 });
 	});
 
+	it("writes a JPEG XL request in the default format", async () => {
+		const { output } = installImages();
+		const { ctx } = context("w=120&f=jxl");
+
+		const response = await GET(ctx as never);
+
+		expect(output).toHaveBeenCalledWith({ format: "image/webp", quality: 85 });
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Content-Type")).toBe("image/webp");
+		expect(response.headers.get("ETag")).toContain("f=jxl");
+		expect(await response.text()).toBe("transformed");
+	});
+
 	it.each(["w=120&q=unknown", "", "w=120&f=gif"])(
 		"preserves the original fallback for malformed query %s",
 		async (query) => {

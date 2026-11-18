@@ -14,11 +14,11 @@
 
 import { INTERNAL_MEDIA_PREFIX } from "./normalize.js";
 
-/** Output formats the wrapped endpoint can produce on Cloudflare. */
-export const ALLOWED_TRANSFORM_FORMATS = ["webp", "avif", "jpeg", "png"] as const;
+/** Output formats an image URL can request. */
+export const ALLOWED_TRANSFORM_FORMATS = ["webp", "avif", "jpeg", "png", "jxl"] as const;
 
 /** Default output format -- broad support, strong compression. */
-export const DEFAULT_TRANSFORM_FORMAT: ImageTransformFormat = "webp";
+export const DEFAULT_TRANSFORM_FORMAT: WrittenTransformFormat = "webp";
 
 /**
  * Default output quality for lossy formats (WebP/AVIF/JPEG) when the request
@@ -47,6 +47,19 @@ function stripWeakEtagPrefix(value: string): string {
 
 /** A format string accepted by {@link ImageTransformOptions.format}. */
 export type ImageTransformFormat = (typeof ALLOWED_TRANSFORM_FORMATS)[number];
+
+/** A format the image services can write. */
+export type WrittenTransformFormat = Exclude<ImageTransformFormat, "jxl">;
+
+/**
+ * The format the endpoint writes for a requested format. Neither image service
+ * (sharp as Astro installs it, the Cloudflare Images binding) writes JPEG XL,
+ * so `f=jxl` is answered in the default format. A `<source type="image/jxl">`
+ * then still shows the image when no middleware answered the request first.
+ */
+export function writtenFormat(format: ImageTransformFormat): WrittenTransformFormat {
+	return format === "jxl" ? DEFAULT_TRANSFORM_FORMAT : format;
+}
 
 /** Validated options for a single transform. */
 export interface ImageTransformOptions {
@@ -248,7 +261,7 @@ export type ParsedTransformParams =
  * PNG8, which is not a safe default for a lossless format.
  */
 export function resolveTransformQuality(
-	format: ImageTransformFormat,
+	format: WrittenTransformFormat,
 	requested: number | undefined,
 ): number | undefined {
 	if (requested !== undefined) return requested;

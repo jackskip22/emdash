@@ -1,16 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const transform = vi.fn();
+const parseURL = vi.fn((url: URL, _config: unknown) => ({
+	width: 150,
+	height: 150,
+	format: url.searchParams.get("f") ?? "webp",
+}));
 
 vi.mock("astro:assets", () => ({
 	getConfiguredImageService: vi.fn(() =>
 		Promise.resolve({
 			transform,
-			parseURL: vi.fn((_url: URL, _config: unknown) => ({
-				width: 150,
-				height: 150,
-				format: "webp",
-			})),
+			parseURL,
 		}),
 	),
 	imageConfig: {},
@@ -67,6 +68,34 @@ describe("GET /_image over EmDash media", () => {
 		expect(response.headers.get("ETag")).toContain(String(lastModified.getTime()));
 		expect(response.headers.get("ETag")).toContain("w=150");
 		expect(response.headers.get("Last-Modified")).toBe(lastModified.toUTCString());
+	});
+
+	it("writes a JPEG XL request in the default format", async () => {
+		const download = vi.fn().mockResolvedValue({
+			body: new ReadableStream<Uint8Array>({
+				start(controller) {
+					controller.enqueue(new Uint8Array([1, 2, 3]));
+					controller.close();
+				},
+			}),
+			contentType: "image/png",
+			size: 3,
+		});
+		transform.mockResolvedValue({ data: new Uint8Array([4, 5, 6]), format: "webp" });
+		const request = new Request(
+			"http://localhost/_image?href=/_emdash/api/media/file/key.png&w=150&f=jxl",
+		);
+
+		const response = await GET(buildContext(request, { download }));
+
+		expect(transform).toHaveBeenCalledWith(
+			expect.any(Uint8Array),
+			expect.objectContaining({ format: "webp" }),
+			expect.anything(),
+		);
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Content-Type")).toBe("image/webp");
+		expect(response.headers.get("ETag")).toContain("f=jxl");
 	});
 
 	it("returns 304 when If-None-Match matches the transform ETag", async () => {

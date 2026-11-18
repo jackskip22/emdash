@@ -14,6 +14,7 @@ import {
 	getTransformFingerprint,
 	isNotModified,
 	validatorHeaders,
+	writtenFormat,
 } from "../../../src/media/image-endpoint.js";
 
 describe("matchInternalMediaKey", () => {
@@ -79,6 +80,7 @@ describe("isTransformFormat", () => {
 	it("accepts supported formats and rejects others", () => {
 		expect(isTransformFormat("webp")).toBe(true);
 		expect(isTransformFormat("avif")).toBe(true);
+		expect(isTransformFormat("jxl")).toBe(true);
 		expect(isTransformFormat("gif")).toBe(false);
 		expect(isTransformFormat("svg")).toBe(false);
 	});
@@ -159,6 +161,13 @@ describe("parseTransformParams", () => {
 		expect(result.ok).toBe(false);
 	});
 
+	it("parses a JPEG XL format request", () => {
+		expect(parse("w=640&f=jxl")).toEqual({
+			ok: true,
+			options: { width: 640, format: "jxl", quality: undefined },
+		});
+	});
+
 	it("rejects unsupported format", () => {
 		expect(parse("w=640&f=gif").ok).toBe(false);
 	});
@@ -168,6 +177,18 @@ describe("parseTransformParams", () => {
 		expect(parse("w=0x10").ok).toBe(false);
 		expect(parse("w=+5").ok).toBe(false);
 		expect(parse("w= 5 ").ok).toBe(false);
+	});
+});
+
+describe("writtenFormat", () => {
+	it("writes JPEG XL requests in the default format", () => {
+		expect(writtenFormat("jxl")).toBe("webp");
+	});
+
+	it("writes every other format as requested", () => {
+		for (const format of ["webp", "avif", "jpeg", "png"] as const) {
+			expect(writtenFormat(format)).toBe(format);
+		}
 	});
 });
 

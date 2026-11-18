@@ -336,9 +336,13 @@ different format for the `<img>`; every `formats` entry then stays a `<source>`.
 />
 ```
 
-Supported formats are `avif`, `webp`, `jpeg`, and `png`. `formats` applies to images optimized by
+Supported formats are `avif`, `webp`, `jpeg`, `png`, and `jxl`. `formats` applies to images optimized by
 the site's image service; images from external media providers keep the provider's own URLs. Without
 `formats`, the component renders a single `<img>` in the image service's default format.
+
+Neither image service can write JPEG XL yet, so the image endpoint answers a `jxl` request in WebP.
+Middleware or a plugin that stores JPEG XL copies can answer the `f=jxl` URL first. Browsers that
+can't show JPEG XL never request it.
 
 If the field has a dark-mode counterpart, `Image` renders both sources and selects one from the
 visitor's color scheme. See [Dark mode images](/guides/dark-mode/#dark-image-variants) for the field and
